@@ -16,7 +16,7 @@ const api = store => next => async action => {
       onSuccess,
       onError
     });
-    console.log("api bugs", response.data);
+    // console.log("api bugs", response.data);
     // specific success handler
     store.dispatch(actions.apiCallSuccess(response.data));
     // general
