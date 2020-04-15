@@ -1,129 +1,116 @@
-import { compose, pipe } from "lodash/fp";
-import { Map } from "immutable";
-import { produce } from "immer";
+import configureStore from "./store/configureStore";
+import customReduxStore from "./custom/customReduxStore"; // customReduxStore
+import * as bugActionCreator from "./store/bugs";
+import {
+  loadBugs,
+  addBug,
+  resolveBug,
+  assignBug,
+  bugRemoved,
+  unresolvedBugs,
+  getBugsByUser
+} from "./store/bugs2";
+import * as actions from "./store/api";
+import { userAdded } from "./store/users";
+import * as projectActionCreator2 from "./store/project2";
 
-const trim = str => str.trim();
-const toLower = str => str.toLowerCase();
-// const wrapIn = str => `<div>${str}</div>`;
-// using currying, wrap can accept span or div :)
-const wrap = type => str => `<${type}> ${str} <${type}>`;
+// PLEASE NOTE
+// bugActionCreator is using normal action type, action creator and reducers
+// bugActionCreator2 is using redux-toolkit's createAction to create action and createReducer to create reducer
 
-// using lodash
-let transformer = pipe(trim, toLower, wrap("div"));
-let response = transformer("Hello World");
-console.log(response);
+//*********************** NORMAL REDUX SECTION WITH REDUX TOOLKIT'S CREATEACTION & CREATEREDUCER ***********************/
+const store = configureStore();
+const unSubscribe = store.subscribe(() => {
+  console.log("************* Store Changed *************", store.getState());
+});
 
-// Immutability
-const person = {
-  name: "John",
-  address: { city: "California", country: "USA" }
-};
-const updatedPerson = {
-  ...person,
-  address: { ...person.address, city: "New York" },
-  name: "Temi Makinde",
-  age: 12
-};
-console.log(person);
-console.log(updatedPerson);
+// console.log("************* Dispatching Bug added *************");
 
-// Arrays
-const numbers = [1, 2, 3];
+// user
+store.dispatch(userAdded({ name: "Tilla Man" }));
+store.dispatch(userAdded({ name: "Lisa Gen" }));
+store.dispatch(userAdded({ name: "Sandra Quilox" }));
 
-// adding
-const added = [...numbers, 4];
-const index = numbers.indexOf(2);
-const addedAtSpecific = [
-  ...numbers.slice(0, index),
-  4,
-  ...numbers.slice(index)
-];
-console.log(added);
-console.log(addedAtSpecific);
+// trigger api call to get list of bugs
+store.dispatch(loadBugs());
 
-// removing
-const removed = numbers.filter(x => x !== 2);
-console.log(removed);
+// bugs
+setTimeout(() => {
+  store.dispatch(addBug({ description: "Bug 5" }));
+}, 3000);
+setTimeout(() => {
+  store.dispatch(addBug({ description: "Bug 6" }));
+}, 3000);
+setTimeout(() => {
+  store.dispatch(addBug({ description: "Bug 7" }));
+}, 3000);
 
-// updating
-const updated = numbers.map(x => (x === 2 ? 40 : x));
-console.log(updated);
+// project
+// store.dispatch(projectActionCreator2.projectAdded({ name: "Project one" }));
+// store.dispatch(projectActionCreator2.projectAdded({ name: "Project two" }));
+// store.dispatch(projectActionCreator2.projectAdded({ name: "Project three" }));
 
-// Vanilla Js
-let book = { title: "From Nothing to Hero JavaScript 1" };
-const publish = () => {
-  book.isPublished = false;
-  book.isVanilla = true;
-};
-publish();
-console.log(book);
+// bug assigned
+setTimeout(() => {
+  store.dispatch(assignBug({ bugId: 1, userId: 1 }));
+}, 3000);
 
-// using Immutable Js
-let imBook = Map({ title: "From Nothing to Hero JavaScript 2" });
-const imPublish = book => {
-  return book.set("isPublished", true);
-};
-let immutableBook = imPublish(imBook);
-console.log(immutableBook.toJS());
+setTimeout(() => {
+  store.dispatch(assignBug({ bugId: 5, userId: 1 }));
+}, 3000);
 
-// using Immer Js
-const immerPublish = book => {
-  return produce(book, draftBook => {
-    draftBook.isPublished = true;
-    draftBook.isImmerized = true;
-    draftBook.isVanilla = false;
-  });
-};
+// bugs resolved
+setTimeout(() => {
+  store.dispatch(resolveBug(1));
+}, 3000);
+setTimeout(() => {
+  store.dispatch(resolveBug(5));
+}, 3000);
 
-let immerBook = immerPublish(book);
-console.log(immerBook);
+store.dispatch(resolveBug(3));
 
-/*
-1.Write code in a functional style to convert the input to the output:  
-input = { tag: “JAVASCRIPT” } 
-output = “(javascript)” 
-*/
-const input = { tag: "JAVASCRIPT" };
-const convert = inp => {
-  const { tag } = input;
-  return tag.toLowerCase();
-};
-let lowered = convert(input);
-console.log(input);
-console.log(lowered);
+// projects
+store.dispatch(projectActionCreator2.projectResolved({ id: 1 }));
+store.dispatch(projectActionCreator2.projectResolved({ id: 2 }));
+// console.log(store.getState());
 
-/*
-2.We have a recipe object as follows: 
-recipe = { name: “Spaghetti Bolognese”, ingredients: [“egg”, “salt”] } 
-Assuming that this object is immutable, write code to  
-    -Add a new ingredient (“cream”) 
-    -Replace “egg” with “egg white” 
-    -Remove an ingredient (“egg”)
-*/
-let recipe = { name: "Spaghetti Bolognese", ingredients: ["egg", "salt"] };
-const add = (name, newIngredient) => {
-  return produce(name, draftName => {
-    draftName.ingredients.push(newIngredient);
-  });
-};
-let addedRecipe = add(recipe, "cream");
+// console.log("************* Dispatching Bug Removed *************");
 
-const replace = (name, oldIngredient, newIngredient) => {
-  return produce(name, draftName => {
-    let index = draftName.ingredients.indexOf(oldIngredient);
-    if (index > -1) draftName.ingredients[index] = newIngredient;
-  });
-};
-let replacedRecipe = replace(addedRecipe, "egg", "egg white");
+// bugs
+store.dispatch(bugRemoved({ id: 4 }));
+// projects
+store.dispatch(projectActionCreator2.projectRemoved({ id: 1 }));
+// console.log(store.getState());
 
-const remove = (name, tobeRemove) => {
-  return produce(name, draftName => {
-    draftName.ingredients = draftName.ingredients.filter(x => x !== tobeRemove);
-  });
-};
-let removedRecipe = remove(replacedRecipe, "cream");
+// get list of unresolved bugs using selector in the bug reducer
+const unResolvedBugs = unresolvedBugs(store.getState());
+const unResolvedBugs2 = unresolvedBugs(store.getState());
+console.log("Unresolved bugs are list ", unResolvedBugs);
+console.log("is Memoization working ? : ", unResolvedBugs === unResolvedBugs2);
 
-console.log(removedRecipe);
-console.log(replacedRecipe);
-console.log(addedRecipe);
-console.log(recipe);
+// get list of bugs assigned to user member
+const bugs = getBugsByUser(1)(store.getState());
+console.log("User 1 bugs", bugs);
+
+// trigger toastify middleware
+store.dispatch({ type: "error", payload: { message: "error really occured" } });
+
+// To prevent memory leak
+unSubscribe();
+
+//*********************** CUSTOM REDUX WITH NORMAL ACTION CREATOR AND ACTION TYPE ***********************/
+customReduxStore.subscribe(() =>
+  console.log(
+    "****** customReduxStore changed ******",
+    customReduxStore.getState()
+  )
+);
+customReduxStore.dispatch(bugActionCreator.bugAdded("Bug by custom Redux"));
+customReduxStore.dispatch(
+  bugActionCreator.bugAdded("Another bub by custom Redux")
+);
+customReduxStore.dispatch(bugActionCreator.bugResolved(3));
+console.log(customReduxStore.getState());
+
+// To prevent memory leak
+customReduxStore.unSubscribe();
