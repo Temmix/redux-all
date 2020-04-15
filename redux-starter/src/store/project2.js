@@ -22,8 +22,7 @@ const slice = createSlice({
     },
     projectResolved: (projects, action) => {
       let selectedproject = projects.find(x => action.payload.id === x.id);
-
-      selectedproject.resolved = true;
+      if (selectedproject) selectedproject.resolved = true;
     }
   }
 });
