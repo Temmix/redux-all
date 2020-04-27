@@ -1,30 +1,18 @@
 import React from "react";
-import StoreContext from "../contexts/storeContext";
+import { connect } from "react-redux";
 import { loadBugs } from "../store/bugs";
 
 class Bugs extends React.Component {
-  static contextType = StoreContext;
-  state = { bugs: [] };
-
   componentDidMount() {
-    const store = this.context;
-
-    this.unsubscribe = store.subscribe(() => {
-      const bugsInStore = store.getState().entities.bugs.list;
-      if (this.state.bugs !== bugsInStore) this.setState({ bugs: bugsInStore });
-    });
-
-    store.dispatch(loadBugs());
+    this.props.loadBugs();
   }
 
-  componentWillUnmount() {
-    this.unsubscribe();
-  }
+  componentWillUnmount() {}
 
   render() {
     return (
       <ul>
-        {this.state.bugs.map(bug => (
+        {this.props.bugs.map(bug => (
           <li key={bug.id}>{bug.description}</li>
         ))}
       </ul>
@@ -32,4 +20,14 @@ class Bugs extends React.Component {
   }
 }
 
-export default Bugs;
+// bugs: state.entities.bugs.list
+const mapStateToProps = state => ({
+  bugs: state.entities.bugs.list
+});
+
+const mapDispatchToProps = dispatch => ({
+  loadBugs: () => dispatch(loadBugs())
+});
+
+// High Order Component or Container component wraps around the presentation component (Bugs)
+export default connect(mapStateToProps, mapDispatchToProps)(Bugs);
